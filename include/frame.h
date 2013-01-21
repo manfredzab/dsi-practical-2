@@ -8,15 +8,12 @@
 class Frame 
 {
 	private :
-	
 		PageID pid;
 		Page*  data;
 		int    pinCount;
 		bool   dirty;
-		bool   referenced;
 
 	public :
-		
 		Frame();
 		~Frame();
 		void   Pin();
@@ -33,10 +30,6 @@ class Frame
 		bool   HasPageID(PageID pid);
 		PageID GetPageID();
 		Page*  GetPage();
-		void   UnsetReferenced();
-		bool   IsReferenced();
-		bool   IsVictim();
-
 };
 
 #endif

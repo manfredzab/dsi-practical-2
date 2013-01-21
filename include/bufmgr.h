@@ -15,8 +15,10 @@ class BufMgr
 		int    numOfBuf;
 
 		int FindFrame(PageID pid);
+		Status FlushFrame(int frameId, bool ignorePinned = false);
+
 		long totalCall;
-		long totalHit;
+		long totalMiss;
 		long numDirtyPageWrites;
 
 	public:
@@ -27,18 +29,18 @@ class BufMgr
 		Status UnpinPage(PageID pid, Bool dirty = false);
 		Status NewPage(PageID& pid, Page*& firstpage, int howMany = 1);
 		Status FreePage(PageID pid);
-		Status FlushPage(PageID pid);
+		Status FlushPage(PageID pid, bool ignorePinned = false);
 		Status FlushAllPages();
-		Status GetStat(long& pinNo, long& missNo) { pinNo = totalCall; missNo = totalCall - totalHit; return OK; }
+		Status GetStat(long& pinNo, long& missNo) { pinNo = totalCall; missNo = totalMiss; return OK; }
 
 		unsigned int GetNumOfUnpinnedFrames();
 
-		// TODO: remove?
-		unsigned int GetNumOfBuffers();
-		unsigned int GetNumOfUnpinnedBuffers();
+//		// TODO: remove?
+//		unsigned int GetNumOfBuffers();
+//		unsigned int GetNumOfUnpinnedBuffers();
 
 		void PrintStat();
-		void ResetStat() { totalHit = 0; totalCall = 0; numDirtyPageWrites = 0; }
+		void ResetStat() { totalMiss = 0; totalCall = 0; numDirtyPageWrites = 0; }
 };
 
 

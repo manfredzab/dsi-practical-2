@@ -30,6 +30,8 @@ BufMgr::BufMgr(int bufSize)
 
 BufMgr::~BufMgr()
 {
+	delete this->replacer;
+
 	// Frame destructor is responsible for flushing the frame to disk if it was dirty.
 	delete this->frames;
 }
@@ -57,8 +59,10 @@ BufMgr::~BufMgr()
 
 Status BufMgr::PinPage(PageID pid, Page*& page, bool isEmpty)
 {
-	Status status = OK;
+	// Collect stats
+	totalCall++;
 
+	Status status = OK;
 	page = NULL;
 
 	// Check if the buffer contains the page "pid"
@@ -66,6 +70,8 @@ Status BufMgr::PinPage(PageID pid, Page*& page, bool isEmpty)
 
 	if (INVALID_FRAME == frameId)
 	{
+		totalMiss++;
+
 		// Find a victim
 		frameId = replacer->PickVictim();
 
@@ -77,11 +83,7 @@ Status BufMgr::PinPage(PageID pid, Page*& page, bool isEmpty)
 		if (OK == status)
 		{
 			Frame& victimFrame = this->frames[frameId];
-
-			if (victimFrame.IsDirty())
-			{
-				status = victimFrame.Write();
-			}
+			this->FlushFrame(frameId);
 
 			if (OK == status)
 			{
@@ -216,8 +218,20 @@ Status BufMgr::NewPage (PageID& firstPid, Page*& firstPage, int howMany)
 
 Status BufMgr::FreePage(PageID pid)
 {
-	//TODO: add your code here
-	return OK;
+	Status status = OK;
+
+	int frameId = this->FindFrame(pid);
+	if (INVALID_FRAME == frameId)
+	{
+		status = FAIL;
+	}
+
+	if (OK == status)
+	{
+		status = this->frames[frameId].Free();
+	}
+
+	return status;
 }
 
 
@@ -235,11 +249,33 @@ Status BufMgr::FreePage(PageID pid)
 //--------------------------------------------------------------------
 
 
-Status BufMgr::FlushPage(PageID pid)
+Status BufMgr::FlushPage(PageID pid, bool ignorePinned)
 {
-	//TODO: add your code here
-	return OK;
-} 
+	Status status = OK;
+
+	if (INVALID_PAGE == pid)
+	{
+		status = FAIL;
+	}
+
+	int frameId = INVALID_FRAME;
+	if (OK == status)
+	{
+		frameId = this->FindFrame(pid);
+
+		if (INVALID_FRAME == frameId)
+		{
+			status = FAIL;
+		}
+	}
+
+	status = this->FlushFrame(frameId, ignorePinned);
+
+	return status;
+}
+
+
+
 
 //--------------------------------------------------------------------
 // BufMgr::FlushAllPages
@@ -255,8 +291,19 @@ Status BufMgr::FlushPage(PageID pid)
 
 Status BufMgr::FlushAllPages()
 {
-	//TODO: add your code here
-	return OK;
+	bool success = true;
+	for (int i = 0; i < this->numOfBuf; i++)
+	{
+		if (this->frames[i].IsValid())
+		{
+			success &= this->frames[i].NotPinned();
+			success &= (this->FlushFrame(i, true) == OK);
+
+			frames[i].EmptyIt();
+		}
+	}
+
+	return success ? OK : FAIL;
 }
 
 
@@ -274,15 +321,25 @@ Status BufMgr::FlushAllPages()
 
 unsigned int BufMgr::GetNumOfUnpinnedFrames()
 {
-	//TODO: add your code here
-	return 0;
+	int numOfUnpinnedFrames = 0;
+
+	for (int i = 0; i < this->numOfBuf; i++)
+	{
+		if (this->frames[i].IsValid() && this->frames[i].NotPinned())
+		{
+			numOfUnpinnedFrames++;
+		}
+	}
+
+	return numOfUnpinnedFrames;
 }
+
 
 void  BufMgr::PrintStat() {
 	cout << "**Buffer Manager Statistics**" << endl;
 	cout << "Number of Dirty Pages Written to Disk: " << numDirtyPageWrites << endl;
 	cout << "Number of Pin Page Requests: " << totalCall << endl;
-	cout << "Number of Pin Page Request Misses " << totalCall - totalHit << endl;
+	cout << "Number of Pin Page Request Misses " << totalMiss << endl;
 }
 
 //--------------------------------------------------------------------
@@ -308,4 +365,37 @@ int BufMgr::FindFrame(PageID pid)
 	}
 
 	return INVALID_FRAME;
+}
+
+
+Status BufMgr::FlushFrame(int frameId, bool ignorePinned)
+{
+	Status status = OK;
+
+	// If we care about flushing pinned pages and the frame is pinned - fail.
+	if (OK == status)
+	{
+		if (!ignorePinned && !this->frames[frameId].NotPinned())
+		{
+			status = FAIL;
+		}
+	}
+
+	// Flush the frame to disk
+	if (OK == status)
+	{
+		Frame& frame = this->frames[frameId];
+
+		if (frame.IsDirty())
+		{
+			// Collect stats
+			numDirtyPageWrites++;
+
+			status = frame.Write();
+		}
+
+		frame.EmptyIt();
+	}
+
+	return status;
 }

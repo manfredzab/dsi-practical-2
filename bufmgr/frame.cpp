@@ -32,7 +32,6 @@ void Frame::EmptyIt()
 {
 	this->pid = INVALID_PAGE;
 	this->dirty = false;
-	this->referenced = false;
 	this->pinCount = 0;
 }
 
@@ -75,8 +74,16 @@ Status Frame::Read(PageID pid)
 
 Status Frame::Free()
 {
-	// TODO: might be off...
-	return MINIBASE_DB->DeallocatePage(pid);
+	Status status = OK;
+
+	if (this->pinCount <= 1)
+	{
+		status = MINIBASE_DB->DeallocatePage(this->pid);
+
+		this->EmptyIt();
+	}
+
+	return status;
 }
 
 bool Frame::NotPinned()
@@ -97,20 +104,4 @@ PageID Frame::GetPageID()
 Page* Frame::GetPage()
 {
 	return this->data;
-}
-
-void Frame::UnsetReferenced()
-{
-	this->referenced = false;
-}
-
-bool Frame::IsReferenced()
-{
-	return this->referenced;
-}
-
-bool Frame::IsVictim()
-{
-	//TODO: ...
-	return false;
 }
