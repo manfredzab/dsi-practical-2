@@ -10,33 +10,32 @@ class Frame
 	private :
 	
 		PageID pid;
-		Page   *data;
+		Page*  data;
 		int    pinCount;
-		int    dirty;
-		Bool referenced;
+		bool   dirty;
+		bool   referenced;
 
 	public :
 		
 		Frame();
 		~Frame();
-		void Pin();
-		void Unpin();
-		void EmptyIt();
-		void DirtyIt();
-		void SetPageID(PageID pid);
-		Bool IsDirty();
-		Bool IsValid();
+		void   Pin();
+		void   Unpin();
+		void   EmptyIt();
+		void   DirtyIt();
+		void   SetPageID(PageID pid);
+		bool   IsDirty();
+		bool   IsValid();
 		Status Write();
 		Status Read(PageID pid);
 		Status Free();
-		Bool NotPinned();
-		Bool HasPageID(PageID pid);
+		bool   NotPinned();
+		bool   HasPageID(PageID pid);
 		PageID GetPageID();
-		Page *GetPage();
-
-		void UnsetReferenced();
-		Bool IsReferenced();
-		Bool IsVictim();
+		Page*  GetPage();
+		void   UnsetReferenced();
+		bool   IsReferenced();
+		bool   IsVictim();
 
 };
 

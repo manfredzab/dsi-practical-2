@@ -21,8 +21,8 @@ class Clock : public Replacer
 		HashTable *hashTable;
 
 	public :
-		
-		Clock( int bufSize, Frame **frames, HashTable *hashTable );
+
+		Clock(int bufSize, Frame **frames, HashTable *hashTable);
 		~Clock();
 		int PickVictim();
 };

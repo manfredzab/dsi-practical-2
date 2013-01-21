@@ -1,6 +1,8 @@
 
 #include "../include/bufmgr.h"
 #include "../include/frame.h"
+#include "../include/lru.h"
+#include "../include/db.h"
 
 //--------------------------------------------------------------------
 // Constructor for BufMgr
@@ -10,9 +12,12 @@
 // PostCond: All frames are empty.
 //--------------------------------------------------------------------
 
-BufMgr::BufMgr( int bufSize )
+BufMgr::BufMgr(int bufSize)
 {
-	//TODO: add your code here
+	this->numOfBuf = bufSize;
+	this->frames = new Frame[bufSize];
+
+	this->replacer = new LRU(this->numOfBuf, &this->frames);
 }
 
 
@@ -24,8 +29,9 @@ BufMgr::BufMgr( int bufSize )
 //--------------------------------------------------------------------
 
 BufMgr::~BufMgr()
-{   
-	//TODO: add your code here
+{
+	// Frame destructor is responsible for flushing the frame to disk if it was dirty.
+	delete this->frames;
 }
 
 //--------------------------------------------------------------------
@@ -51,8 +57,56 @@ BufMgr::~BufMgr()
 
 Status BufMgr::PinPage(PageID pid, Page*& page, bool isEmpty)
 {
-	//TODO: add your code here
-	return OK;
+	Status status = OK;
+
+	page = NULL;
+
+	// Check if the buffer contains the page "pid"
+	int frameId = this->FindFrame(pid);
+
+	if (INVALID_FRAME == frameId)
+	{
+		// Find a victim
+		frameId = replacer->PickVictim();
+
+		if (INVALID_FRAME == frameId)
+		{
+			status == FAIL;
+		}
+
+		if (OK == status)
+		{
+			Frame& victimFrame = this->frames[frameId];
+
+			if (victimFrame.IsDirty())
+			{
+				status = victimFrame.Write();
+			}
+
+			if (OK == status)
+			{
+				if (isEmpty)
+				{
+					victimFrame.SetPageID(pid);
+				}
+				else
+				{
+					status = victimFrame.Read(pid);
+				}
+			}
+		}
+	}
+
+	if (OK == status)
+	{
+		// Increment the pin count
+		this->frames[frameId].Pin();
+
+		// Set the return value for page
+		page = this->frames[frameId].GetPage();
+	}
+
+	return status;
 } 
 
 //--------------------------------------------------------------------
@@ -73,8 +127,25 @@ Status BufMgr::PinPage(PageID pid, Page*& page, bool isEmpty)
 
 Status BufMgr::UnpinPage(PageID pid, bool dirty)
 {
-	//TODO: add your code here
-	return OK;
+	Status status = OK;
+
+	int frameId = this->FindFrame(pid);
+	if (INVALID_FRAME == frameId)
+	{
+		status = FAIL;
+	}
+
+	if (OK == status)
+	{
+		this->frames[frameId].Unpin();
+
+		if (dirty)
+		{
+			this->frames[frameId].DirtyIt();
+		}
+	}
+
+	return status;
 }
 
 //--------------------------------------------------------------------
@@ -100,8 +171,29 @@ Status BufMgr::UnpinPage(PageID pid, bool dirty)
 
 Status BufMgr::NewPage (PageID& firstPid, Page*& firstPage, int howMany)
 {
-	//TODO: add your code here
-	return OK;
+	Status status = OK;
+
+	if (howMany < 1)
+	{
+		status = FAIL;
+	}
+
+	if (OK == status)
+	{
+		status = MINIBASE_DB->AllocatePage(firstPid, howMany);
+	}
+
+	if (OK == status)
+	{
+		status = this->PinPage(firstPid, firstPage, true);
+
+		if (status != OK)
+		{
+			MINIBASE_DB->DeallocatePage(firstPid, howMany);
+		}
+	}
+
+	return status;
 }
 
 //--------------------------------------------------------------------
@@ -187,10 +279,10 @@ unsigned int BufMgr::GetNumOfUnpinnedFrames()
 }
 
 void  BufMgr::PrintStat() {
-	cout<<"**Buffer Manager Statistics**"<<endl;
-	cout<<"Number of Dirty Pages Written to Disk: "<<numDirtyPageWrites<<endl;
-	cout<<"Number of Pin Page Requests: "<<totalCall<<endl;
-	cout<<"Number of Pin Page Request Misses "<<totalCall-totalHit<<endl;
+	cout << "**Buffer Manager Statistics**" << endl;
+	cout << "Number of Dirty Pages Written to Disk: " << numDirtyPageWrites << endl;
+	cout << "Number of Pin Page Requests: " << totalCall << endl;
+	cout << "Number of Pin Page Request Misses " << totalCall - totalHit << endl;
 }
 
 //--------------------------------------------------------------------
@@ -205,8 +297,15 @@ void  BufMgr::PrintStat() {
 // Return   : the frame number if found. INVALID_FRAME otherwise.
 //--------------------------------------------------------------------
 
-int BufMgr::FindFrame( PageID pid )
+int BufMgr::FindFrame(PageID pid)
 {
-	//TODO: add your code here
-	return 0;
+	for (int i = 0; i < this->numOfBuf; i++)
+	{
+		if (this->frames[i].GetPageID() == pid)
+		{
+			return i;
+		}
+	}
+
+	return INVALID_FRAME;
 }
