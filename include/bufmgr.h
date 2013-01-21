@@ -35,10 +35,6 @@ class BufMgr
 
 		unsigned int GetNumOfUnpinnedFrames();
 
-//		// TODO: remove?
-//		unsigned int GetNumOfBuffers();
-//		unsigned int GetNumOfUnpinnedBuffers();
-
 		void PrintStat();
 		void ResetStat() { totalMiss = 0; totalCall = 0; numDirtyPageWrites = 0; }
 };

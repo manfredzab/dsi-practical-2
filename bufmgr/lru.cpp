@@ -7,7 +7,7 @@ int LRU::PickVictim()
 
 	for (int i = 0; i < this->numOfBuf; i++)
 	{
-		if (this->frames[i]->NotPinned())
+		if ((*this->frames)[i].NotPinned())
 		{
 			return i;
 		}

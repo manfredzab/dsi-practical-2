@@ -18,6 +18,8 @@ BufMgr::BufMgr(int bufSize)
 	this->frames = new Frame[bufSize];
 
 	this->replacer = new LRU(this->numOfBuf, &this->frames);
+
+	this->ResetStat();
 }
 
 
@@ -33,7 +35,7 @@ BufMgr::~BufMgr()
 	delete this->replacer;
 
 	// Frame destructor is responsible for flushing the frame to disk if it was dirty.
-	delete this->frames;
+	delete[] this->frames;
 }
 
 //--------------------------------------------------------------------
@@ -77,7 +79,7 @@ Status BufMgr::PinPage(PageID pid, Page*& page, bool isEmpty)
 
 		if (INVALID_FRAME == frameId)
 		{
-			status == FAIL;
+			status = FAIL;
 		}
 
 		if (OK == status)
@@ -325,7 +327,8 @@ unsigned int BufMgr::GetNumOfUnpinnedFrames()
 
 	for (int i = 0; i < this->numOfBuf; i++)
 	{
-		if (this->frames[i].IsValid() && this->frames[i].NotPinned())
+		// Used only for test case; does not really make sense (see bmtest.cpp, Test2).
+		if (/*this->frames[i].IsValid() && */this->frames[i].NotPinned())
 		{
 			numOfUnpinnedFrames++;
 		}

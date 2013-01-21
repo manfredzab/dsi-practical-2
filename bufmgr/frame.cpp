@@ -76,7 +76,12 @@ Status Frame::Free()
 {
 	Status status = OK;
 
-	if (this->pinCount <= 1)
+	if (this->pinCount > 1)
+	{
+		status = FAIL;
+	}
+
+	if (OK == status)
 	{
 		status = MINIBASE_DB->DeallocatePage(this->pid);
 
