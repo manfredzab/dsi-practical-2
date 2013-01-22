@@ -193,7 +193,7 @@ Status BufMgr::NewPage (PageID& firstPid, Page*& firstPage, int howMany)
 
 		if (status != OK)
 		{
-			MINIBASE_DB->DeallocatePage(firstPid, howMany);
+			status = MINIBASE_DB->DeallocatePage(firstPid, howMany);
 		}
 	}
 
@@ -223,14 +223,13 @@ Status BufMgr::FreePage(PageID pid)
 	Status status = OK;
 
 	int frameId = this->FindFrame(pid);
-	if (INVALID_FRAME == frameId)
-	{
-		status = FAIL;
-	}
-
-	if (OK == status)
+	if (INVALID_FRAME != frameId)
 	{
 		status = this->frames[frameId].Free();
+	}
+	else
+	{
+		status = MINIBASE_DB->DeallocatePage(pid); // Deallocate the page even if it was not in the buffer
 	}
 
 	return status;
@@ -328,7 +327,7 @@ unsigned int BufMgr::GetNumOfUnpinnedFrames()
 	for (int i = 0; i < this->numOfBuf; i++)
 	{
 		// Used only for test case; does not really make sense (see bmtest.cpp, Test2).
-		if (/*this->frames[i].IsValid() && */this->frames[i].NotPinned())
+		if (!this->frames[i].IsValid() || this->frames[i].NotPinned())
 		{
 			numOfUnpinnedFrames++;
 		}

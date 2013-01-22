@@ -13,7 +13,8 @@ int main (int argc, char **argv)
 	Status status;
 
 	int bufSize = NUMBUF; 
-	minibase_globals = new SystemDefs(status, "MINIBASE.DB", 2000, bufSize, "Clock");
+	//minibase_globals = new SystemDefs(status, "MINIBASE.DB", 2000, bufSize, "Clock");
+	minibase_globals = new SystemDefs(status, "MINIBASE.DB", 4000, bufSize, "Clock");
 
 	if (status != OK)
 	{

@@ -83,9 +83,12 @@ Status Frame::Free()
 
 	if (OK == status)
 	{
-		status = MINIBASE_DB->DeallocatePage(this->pid);
+		PageID pid = this->pid;
 
+		// Release the frame (the space might be needed by the directory page)
 		this->EmptyIt();
+
+		status = MINIBASE_DB->DeallocatePage(pid);
 	}
 
 	return status;
