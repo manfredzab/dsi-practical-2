@@ -47,13 +47,6 @@ int BMTester::Test1()
 		return false;
 	}
 
-	
-	PageID tempPid;
-
-	status = MINIBASE_BM->NewPage( tempPid, pg, numPages );
-
-	
-
 	//
 	// Unpin that first page... to simplify our loop.
 	//

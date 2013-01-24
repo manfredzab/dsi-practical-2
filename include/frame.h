@@ -12,6 +12,7 @@ class Frame
 		Page*  data;
 		int    pinCount;
 		bool   dirty;
+		bool   referenced;
 
 	public :
 		Frame();
@@ -30,6 +31,11 @@ class Frame
 		bool   HasPageID(PageID pid);
 		PageID GetPageID();
 		Page*  GetPage();
+
+		// Needed for LRU
+		void   DereferenceIt();
+		void   ReferenceIt();
+		bool   IsReferenced();
 };
 
 #endif

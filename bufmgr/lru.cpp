@@ -3,13 +3,23 @@
 
 int LRU::PickVictim()
 {
-	// TODO: not really LRU
 
-	for (int i = 0; i < this->numOfBuf; i++)
+	for (int i = 0; i < 2 * this->numOfBuf; i++) // Do two cycles
 	{
-		if ((*this->frames)[i].NotPinned())
+		current = (current + i) % this->numOfBuf;
+
+		Frame& potentialVictim = (*this->frames)[current];
+		if (potentialVictim.NotPinned())
 		{
-			return i;
+			if (potentialVictim.IsReferenced())
+			{
+				potentialVictim.DereferenceIt();
+			}
+			else
+			{
+				// Current frame gots to go
+				return current;
+			}
 		}
 	}
 
