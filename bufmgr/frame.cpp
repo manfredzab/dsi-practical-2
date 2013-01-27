@@ -27,9 +27,9 @@ void Frame::Unpin()
 {
 	this->pinCount--;
 
-	if (0 == this->pinCount)
+	if (this->NotPinned())
 	{
-		this->referenced = true;
+		this->timestamp = clock();
 	}
 }
 
@@ -37,14 +37,10 @@ void Frame::EmptyIt()
 {
 	this->pid = INVALID_PAGE;
 	this->dirty = false;
-	this->referenced = false;
 	this->pinCount = 0;
+	this->timestamp = clock();
 }
 
-void Frame::DereferenceIt()
-{
-	this->referenced = false;
-}
 
 void Frame::DirtyIt()
 {
@@ -54,11 +50,6 @@ void Frame::DirtyIt()
 void Frame::SetPageID(PageID pid)
 {
 	this->pid = pid;
-}
-
-bool Frame::IsReferenced()
-{
-	return this->referenced;
 }
 
 bool Frame::IsDirty()
@@ -128,4 +119,9 @@ PageID Frame::GetPageID()
 Page* Frame::GetPage()
 {
 	return this->data;
+}
+
+clock_t Frame::GetTimestamp()
+{
+	return this->timestamp;
 }
